@@ -34,7 +34,7 @@ Using this approach you'll login & out on every call.  Logging out is important 
 
 Getting a new session every time probably isn't needed either, but doing it minimizes the need to validate if the session is still alive.
 
-##Docker image
+## Docker image
 The docker image that can be generated polls the interface of the SMA inverter and publishes the results to an mqtt topic.
 
 Relevant environment variables to set:
