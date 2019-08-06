@@ -45,6 +45,6 @@ POLLING_INTERVAL=<amount of seconds between requests>
 MQTT_HOST=<mqtt hostname or ip>
 MQTT_TOPIC=<mqtt TOPIC to publish too>
 ```
-The json file reported by the SMA inverter is published unmodified to the topic
+The json file reported by the SMA inverter is published flattened to the topic (TODO). Currently the json structure is made as flat as possible. todo to make this optional
 
 An example file with all environment variables is included. This can be used with the --env-file parameter when running your docker container
