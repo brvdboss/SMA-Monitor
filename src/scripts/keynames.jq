@@ -1,0 +1,1 @@
+[to_entries[] | {key: .key, value: .value.TagIdEvtMsg | tostring}] | from_entries

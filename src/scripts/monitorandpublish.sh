@@ -1,6 +1,17 @@
 #!/bin/sh
 
-echo "{\"name\": \""$INVERTER_HOST"\", \"time\"": `date +'%s'`"}" > /tmp/date.json
+# If this is the very first time we run, get the "dictionary" files
+if [ ! -f /tmp/en_US.json ];
+then
+	#we build this the first time in case of changes in firmware/translations/differences between inverters etc
+	#adding --compressed as inverter by defaults sends content compressed for these files
+	curl --compressed -s http://$INVERTER_HOST/data/ObjectMetadata_Istl.json > /tmp/ObjectMetadata_Istl.json
+	curl --compressed -s http://$INVERTER_HOST/data/l10n/en-US.json > /tmp/en-US.json
+	#get all the id's that we want translated
+	jq -f /SMA-Monitor/keynames.jq /tmp/ObjectMetadata_Istl.json > /tmp/keynames.json
+	#create dictionary
+	jq --argfile dict /tmp/en-US.json -f /SMA-Monitor/fillin.jq /tmp/keynames.json > /tmp/newdict.json
+fi
 
 #login to the SMA inverter and store the session
 SESSION=`curl -s -X POST -d '{"right": "usr", "pass": "'$INVERTER_PW'"}' http://$INVERTER_HOST/dyn/login.json | jq -r .result.sid`
@@ -9,9 +20,8 @@ curl -s --data-binary '{"destDev":[]}' http://$INVERTER_HOST/dyn/getAllOnlValues
 #logout
 curl -s -X POST --data-binary '{}' http://$INVERTER_HOST/dyn/logout.json?sid=$SESSION >/dev/null
 
-#"filter" the json file basically flattening all the paths
-cat /tmp/data.json | jq -f /SMA-Monitor/filter.jq | jq -s add > /tmp/data-filtered.json
-cat /tmp/data-filtered.json /tmp/date.json | jq -s add > /tmp/data-clean.json
+#"filter" the json file basically flattening all the paths and making it human readable
+jq --argfile dict /tmp/newdict.json --argfile dict2 /tmp/en-US.json -f /SMA-Monitor/filter.jq /tmp/data.json > /tmp/data-clean.json
 
 #publish to mqtt topic
 #we are sending from file as we can't simply pass it on the commandline due to escaping of quotes etc.
@@ -19,5 +29,4 @@ mosquitto_pub -h $MQTT_HOST -f /tmp/data-clean.json -t $MQTT_TOPIC
 
 #clean-up the file
 rm /tmp/data.json
-rm /tmp/date.json
 rm /tmp/data-clean.json
